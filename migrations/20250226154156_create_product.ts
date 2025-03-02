@@ -8,7 +8,8 @@ export async function up(knex: Knex): Promise<void> {
       .unsigned()
       .references("id")
       .inTable("categories")
-      .onDelete("SET NULL");
+      .onDelete("SET NULL")
+      .notNullable();
     table.string("name").notNullable();
     table.text("description");
     table.integer("price").notNullable();
