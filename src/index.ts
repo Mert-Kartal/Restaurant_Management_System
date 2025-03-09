@@ -1,6 +1,5 @@
 import express from "express";
-import { router as category } from "src/route/category";
-
+import { router as category } from "./route/routeCategory";
 const app = express();
 app.use(express.json());
 
