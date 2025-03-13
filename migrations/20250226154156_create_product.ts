@@ -10,7 +10,7 @@ export async function up(knex: Knex): Promise<void> {
       .inTable("categories")
       .onDelete("SET NULL")
       .notNullable();
-    table.string("name").notNullable();
+    table.string("name").unique().notNullable();
     table.text("description");
     table.integer("price").notNullable();
     table.timestamp("created_at").defaultTo(knex.fn.now()).notNullable();

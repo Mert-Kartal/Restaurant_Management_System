@@ -6,7 +6,7 @@ import {
   modelUpdateCategory,
   modelDeleteCategory,
   modelExistCategory,
-} from "src/model/modelCategory";
+} from "../model/modelCategory";
 type ShowDeletedCategory = "true" | "false" | "onlyDeleted";
 
 export async function addCategory(
@@ -65,6 +65,7 @@ export async function getCategory(req: Request<{ id: string }>, res: Response) {
   }
   try {
     const getCategoryByID = await modelGetCategoryByID(+id);
+    console.log(getCategoryByID);
     if (getCategoryByID === undefined || getCategoryByID.deleted_at) {
       res.status(404).json({ error: "no data" });
       return;
@@ -88,9 +89,23 @@ export async function editCategory(
     return;
   }
   try {
-    const existCategory = await modelExistCategory(undefined, name);
-    console.log(existCategory);
-    if (existCategory) {
+    const existCategoryID = await modelExistCategory(+id);
+    const existCategoryName = await modelExistCategory(undefined, name);
+    console.log(existCategoryName, existCategoryID);
+
+    if (!existCategoryID) {
+      res.status(404).json({
+        error: "This category does not exist",
+      });
+      return;
+    }
+    if (existCategoryID.deleted_at) {
+      res.status(400).json({
+        error: "This category is deleted",
+      });
+      return;
+    }
+    if (existCategoryName) {
       res.status(400).json({
         error: "This name has taken",
       });
@@ -100,7 +115,7 @@ export async function editCategory(
       name,
       description,
     });
-    res.status(200).json(updatedCategory);
+    res.status(200).json(updatedCategory[0]);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ message: "Something went wrong" });
@@ -119,7 +134,14 @@ export async function removeCategory(
   }
   try {
     const existCategory = await modelExistCategory(+id);
-    if (existCategory[0].deleted_at) {
+    console.log(existCategory);
+    if (!existCategory) {
+      res.status(404).json({
+        error: "This Id does not exist",
+      });
+      return;
+    }
+    if (existCategory.deleted_at) {
       res.status(404).json({
         error: "no data",
       });

@@ -1,22 +1,28 @@
-import db from "src/db";
+import db from "../db";
 
 interface CategoryRequest {
   name: string;
   description?: string;
+  deleted_at?: Date;
 }
 type PartialCategory = Partial<CategoryRequest>;
 
 type ShowDeletedCategory = "true" | "false" | "onlyDeleted";
 
-export async function modelCreateCategory(data: CategoryRequest) {
+export async function modelCreateCategory(
+  data: CategoryRequest
+): Promise<CategoryRequest> {
   try {
-    return db("categories").insert(data).returning("*");
+    const createdCategory = await db("categories").insert(data).returning("*");
+    return createdCategory[0];
   } catch (error) {
     throw error;
   }
 }
 
-export async function modelAllCategories(showDeleted: ShowDeletedCategory) {
+export async function modelAllCategories(
+  showDeleted: ShowDeletedCategory
+): Promise<CategoryRequest[]> {
   try {
     const query = db("categories").select("*");
     if (showDeleted === "false") {
@@ -30,7 +36,9 @@ export async function modelAllCategories(showDeleted: ShowDeletedCategory) {
   }
 }
 
-export async function modelGetCategoryByID(id: number) {
+export async function modelGetCategoryByID(
+  id: number
+): Promise<CategoryRequest> {
   try {
     return db("categories").where({ id }).first();
   } catch (error) {
@@ -38,26 +46,39 @@ export async function modelGetCategoryByID(id: number) {
   }
 }
 
-export async function modelUpdateCategory(id: number, data: PartialCategory) {
+export async function modelUpdateCategory(
+  id: number,
+  data: PartialCategory
+): Promise<PartialCategory[]> {
   try {
-    return db("categories").where({ id }).update(data).returning("*");
+    const updatedCategory = db("categories")
+      .where({ id })
+      .update(data)
+      .returning("*");
+    return updatedCategory;
   } catch (error) {
     throw error;
   }
 }
 
-export async function modelDeleteCategory(id: number) {
+export async function modelDeleteCategory(
+  id: number
+): Promise<CategoryRequest> {
   try {
-    return db("categories")
+    const deletedCategory = await db("categories")
       .where({ id })
       .update({ deleted_at: new Date() })
       .returning("*");
+    return deletedCategory[0];
   } catch (error) {
     throw error;
   }
 }
 
-export async function modelExistCategory(id?: number, name?: string) {
+export async function modelExistCategory(
+  id?: number,
+  name?: string
+): Promise<CategoryRequest> {
   try {
     const payload: { id?: number; name?: string } = {};
     if (id) {
@@ -66,7 +87,7 @@ export async function modelExistCategory(id?: number, name?: string) {
     if (name) {
       payload.name = name;
     }
-    return db("categories").where(payload).returning("*");
+    return db("categories").select("*").where(payload).first();
   } catch (error) {
     throw error;
   }
