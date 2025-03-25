@@ -11,7 +11,7 @@
     "sourceMap": true,
     "outDir": "dist",
     "strict": true,
-    "baseUrl": "src",
+    "baseUrl": ".",
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
     "experimentalDecorators": false,
@@ -23,7 +23,7 @@
   "ts-node": {
     "compilerOptions": {
       "moduleDetection": "force",
-      "module": "CommonJS",
+      "module": "NodeNext",
       "resolveJsonModule": true,
       "allowJs": true,
       "esModuleInterop": true,

@@ -6,8 +6,12 @@ import {
   modelUpdateProduct,
   modelDeleteProduct,
   modelExistProduct,
+  modelGetProductIngredients,
+  modelPutProductIngredients,
 } from "../model/modelProduct";
-type ShowDeletedProduct = "true" | "false" | "onlyDeleted";
+import { modelExistCategory } from "../model/modelCategory";
+import { ExistIngredients } from "../model/modelIngredient";
+import { ShowDeleted } from "src/constant";
 export async function addProduct(
   req: Request<
     {},
@@ -30,9 +34,15 @@ export async function addProduct(
     return;
   }
   try {
-    const existProduct = await modelExistProduct(undefined, name);
-    console.log(existProduct);
-    if (existProduct) {
+    const existCategory = await modelExistCategory(+category_id);
+    if (!existCategory) {
+      res.status(404).json({
+        error: "This category does not exist",
+      });
+      return;
+    }
+    const existProductName = await modelExistProduct(undefined, name);
+    if (existProductName) {
       res.status(400).json({
         error: "This name has taken",
       });
@@ -54,7 +64,7 @@ export async function addProduct(
   }
 }
 export async function listProduct(
-  req: Request<{}, {}, {}, { showDeleted: ShowDeletedProduct }>,
+  req: Request<{}, {}, {}, { showDeleted: ShowDeleted }>,
   res: Response
 ) {
   const { showDeleted = "false" } = req.query;
@@ -110,7 +120,8 @@ export async function editProduct(
     id === ":id" ||
     isNaN(+id) ||
     (category_id && isNaN(+category_id)) ||
-    (price && isNaN(+price))
+    (price && isNaN(+price)) ||
+    (!category_id && !name && !description && !price)
   ) {
     res.status(400).json({
       error: "Invalid Data",
@@ -119,26 +130,38 @@ export async function editProduct(
   }
   try {
     const existProductID = await modelExistProduct(+id);
-    const existProductName = await modelExistProduct(undefined, name);
-    console.log(existProductID, existProductName);
-
     if (!existProductID) {
       res.status(404).json({
-        error: "This category does not exist",
+        error: "This product does not exist",
       });
       return;
     }
     if (existProductID.deleted_at) {
       res.status(400).json({
-        error: "This category is deleted",
+        error: "This product is deleted",
       });
       return;
     }
-    if (existProductName) {
-      res.status(400).json({
-        error: "This name has taken",
-      });
-      return;
+    if (category_id) {
+      const existCategoryID = await modelExistCategory(+category_id);
+      console.log(existCategoryID);
+      if (!existCategoryID || existCategoryID.deleted_at) {
+        res.status(404).json({
+          error: "This category does not exist",
+        });
+        return;
+      }
+    }
+    if (name) {
+      const existProductName = await modelExistProduct(undefined, name);
+      console.log(existProductName);
+
+      if (existProductName) {
+        res.status(400).json({
+          error: "This name has taken",
+        });
+        return;
+      }
     }
     const payload: {
       category_id?: number;
@@ -170,6 +193,7 @@ export async function removeProduct(
   }
   try {
     const existProduct = await modelExistProduct(+id);
+    console.log(existProduct);
     if (!existProduct) {
       res.status(404).json({
         error: "This Id does not exist",
@@ -184,6 +208,92 @@ export async function removeProduct(
     }
     const deletedProduct = await modelDeleteProduct(+id);
     res.status(200).json(deletedProduct);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+}
+export async function listProductIngredient(
+  req: Request<{ id: string }>,
+  res: Response
+) {
+  const id = req.params.id;
+  try {
+    if (id === ":id" || isNaN(+id)) {
+      res.status(400).json({
+        error: "Invalid Data",
+      });
+      return;
+    }
+
+    const getProductByID = await modelGetProductByID(+id);
+
+    if (getProductByID === undefined || getProductByID.deleted_at) {
+      res.status(404).json({ error: "no data" });
+      return;
+    }
+
+    const getProductIngredients = await modelGetProductIngredients(+id);
+    if (getProductIngredients.length === 0) {
+      res.status(404).json({ error: "no data" });
+      return;
+    }
+    res.status(200).json(getProductIngredients);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+}
+export async function editProductIngredient(
+  req: Request<{ id: string }, {}, { ingredientList: number[] }>,
+  res: Response
+) {
+  const id = req.params.id;
+  const { ingredientList } = req.body;
+  try {
+    if (
+      id === ":id" ||
+      isNaN(+id) ||
+      !ingredientList ||
+      !Array.isArray(ingredientList)
+    ) {
+      res.status(400).json({
+        error: "Invalid Data",
+      });
+      return;
+    }
+
+    const notNumberContent = ingredientList.filter(
+      (ingredient) => typeof ingredient !== "number"
+    );
+
+    if (notNumberContent.length > 0) {
+      res.status(400).json({ error: "Invalid data:" + notNumberContent });
+      return;
+    }
+    const getProductByID = await modelGetProductByID(+id);
+
+    if (getProductByID === undefined || getProductByID.deleted_at) {
+      res.status(404).json({ error: "no data" });
+      return;
+    }
+
+    const existIngredients = await ExistIngredients(ingredientList);
+
+    const existIds = existIngredients.map((item) => item.id);
+
+    const notExistIds = ingredientList.filter((id) => !existIds.includes(id));
+
+    if (existIngredients.length !== ingredientList.length) {
+      res.status(404).json({ error: `Invalid data:${notExistIds}` });
+      return;
+    }
+    const updatedProductIngredient = await modelPutProductIngredients(
+      +id,
+      ingredientList
+    );
+
+    res.status(200).json(updatedProductIngredient);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ message: "Something went wrong" });

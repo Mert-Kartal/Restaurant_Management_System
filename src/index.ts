@@ -1,6 +1,7 @@
 import express from "express";
 import categoryRouter from "./route/routeCategory";
 import productRouter from "./route/routeProduct";
+import ingredientRouter from "./route/routeIngredient";
 const app = express();
 app.use(express.json());
 
@@ -10,7 +11,8 @@ app.get("/", (req, res) => {
   res.send("Hello World");
 });
 
-app.use("/category", categoryRouter);
-app.use("/product", productRouter);
+app.use("/api/category", categoryRouter);
+app.use("/api/product", productRouter);
+app.use("/api/ingredient", ingredientRouter);
 
 app.listen(PORT, () => console.log(`Server is working on port ${PORT}!`));

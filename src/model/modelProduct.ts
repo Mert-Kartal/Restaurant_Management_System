@@ -7,8 +7,16 @@ interface ProductRequest {
   price: number;
   deleted_at?: Date | null;
 }
+interface ProductIngredient {
+  product_id: number;
+  ingredient_id: number;
+}
+
+type ProductIngredientList = ProductIngredient[];
+
 type PartialProduct = Partial<ProductRequest>;
-type ShowDeletedProduct = "false" | "true" | "onlyDeleted";
+import { ShowDeleted } from "src/constant";
+
 export async function modelCreateProducts(
   data: ProductRequest
 ): Promise<ProductRequest> {
@@ -21,16 +29,16 @@ export async function modelCreateProducts(
 }
 
 export async function modelAllProducts(
-  showDeleted: ShowDeletedProduct
+  showDeleted: ShowDeleted
 ): Promise<ProductRequest[]> {
   try {
     const query = db("products").select("*");
     if (showDeleted === "false") {
       query.whereNull("deleted_at");
     } else if (showDeleted === "onlyDeleted") {
-      query.whereNotNull("deleted-at");
+      query.whereNotNull("deleted_at");
     }
-    return query;
+    return await query;
   } catch (error) {
     throw error;
   }
@@ -52,7 +60,7 @@ export async function modelUpdateProduct(
   try {
     const updatedProduct = await db("products")
       .where({ id })
-      .update(data)
+      .update({ ...data, updated_at: new Date() })
       .returning("*");
     return updatedProduct[0];
   } catch (error) {
@@ -85,6 +93,43 @@ export async function modelExistProduct(
       payload.name = name;
     }
     return db("products").select("*").where(payload).first();
+  } catch (error) {
+    throw error;
+  }
+}
+
+/*
+get productIngredient ürün malzemelerini listele              | GET /products/:productId/ingredients
+put productIngredient ürün malzemeleri güncelle yoksa oluştur | PUT /products/:productId/ingredients
+*/
+
+export async function modelGetProductIngredients(
+  product_id: number
+): Promise<ProductIngredient[]> {
+  try {
+    const productIngredients = await db("product_ingredients")
+      .select("*")
+      .where({ product_id });
+
+    return productIngredients;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function modelPutProductIngredients(
+  product_id: number,
+  ingredient_ids: number[]
+) {
+  try {
+    await db("product_ingredients").where({ product_id }).delete();
+
+    const updateField = ingredient_ids.map((ingredient_id) => ({
+      product_id,
+      ingredient_id,
+    }));
+
+    return await db("product_ingredients").insert(updateField).returning("*");
   } catch (error) {
     throw error;
   }

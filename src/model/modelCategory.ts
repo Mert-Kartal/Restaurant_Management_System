@@ -7,8 +7,7 @@ interface CategoryRequest {
 }
 type PartialCategory = Partial<CategoryRequest>;
 
-type ShowDeletedCategory = "true" | "false" | "onlyDeleted";
-
+import { ShowDeleted } from "src/constant";
 export async function modelCreateCategory(
   data: CategoryRequest
 ): Promise<CategoryRequest> {
@@ -21,7 +20,7 @@ export async function modelCreateCategory(
 }
 
 export async function modelAllCategories(
-  showDeleted: ShowDeletedCategory
+  showDeleted: ShowDeleted
 ): Promise<CategoryRequest[]> {
   try {
     const query = db("categories").select("*");
@@ -53,7 +52,7 @@ export async function modelUpdateCategory(
   try {
     const updatedCategory = db("categories")
       .where({ id })
-      .update(data)
+      .update({...data,updated_at:new Date()})
       .returning("*");
     return updatedCategory;
   } catch (error) {
